@@ -1,7 +1,70 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
-from services.gestion_entregas import insertar_distribuidor, eliminar_distribuidor, actualizar_distribuidor, obtener_distribuidores
+from tkinter import ttk, messagebox
+from services.gestion_entregas import insertar_distribuidor, eliminar_distribuidor, actualizar_distribuidor, obtener_distribuidores, buscar_distribuidores
+
+def iniciar_gui():
+    root = tk.Tk()
+    root.title("Gestión de Distribuidores")
+    root.geometry("800x400")
+
+    # Centrar la ventana principal
+    centrar_ventana(root)
+
+    # Título
+    titulo = tk.Label(root, text="Gestión de Distribuidores", font=("Arial", 16))
+    titulo.pack(pady=10)
+
+    # Crear frame para la tabla
+    frame_tabla = tk.Frame(root)
+    frame_tabla.pack(pady=10)
+
+    # Encabezados de la tabla
+    columnas = ("ID", "Nombre", "Certificación", "Contacto", "Calificación")
+    global tabla
+    tabla = ttk.Treeview(frame_tabla, columns=columnas, show='headings')
+
+    # Definir encabezados
+    for columna in columnas:
+        tabla.heading(columna, text=columna)
+
+    # Ancho de columnas
+    tabla.column("ID", width=50)
+    tabla.column("Nombre", width=150)
+    tabla.column("Certificación", width=150)
+    tabla.column("Contacto", width=150)
+    tabla.column("Calificación", width=100)
+
+    # Insertar datos en la tabla
+    mostrar_distribuidores()
+    tabla.pack()
+
+    # Crear frame para la búsqueda
+    frame_busqueda = tk.Frame(root)
+    frame_busqueda.pack(pady=10)
+
+    global entry_busqueda  # Hacer global la entrada de búsqueda
+    tk.Label(frame_busqueda, text="Buscar Distribuidor por Nombre").grid(row=0, column=0)
+    entry_busqueda = tk.Entry(frame_busqueda)
+    entry_busqueda.grid(row=0, column=1, padx=10)
+
+    btn_buscar = tk.Button(frame_busqueda, text="Buscar", command=buscar_distribuidor, bg="yellow", fg="black")
+    btn_buscar.grid(row=0, column=2)
+
+    # Crear frame para los botones de CRUD
+    frame_botones = tk.Frame(root)
+    frame_botones.pack(pady=10)
+
+    # Botones CRUD con colores
+    btn_crear = tk.Button(frame_botones, text="Crear Distribuidor", command=crear_distribuidor, bg="green", fg="white")
+    btn_crear.grid(row=0, column=0, padx=10)
+
+    btn_modificar = tk.Button(frame_botones, text="Modificar Distribuidor", command=modificar_distribuidor, bg="blue", fg="white")
+    btn_modificar.grid(row=0, column=1, padx=10)
+
+    btn_eliminar = tk.Button(frame_botones, text="Eliminar Distribuidor", command=eliminar_distribuidor_ui, bg="red", fg="white")
+    btn_eliminar.grid(row=0, column=2, padx=10)
+
+    root.mainloop()
 
 # Función para centrar la ventana en la pantalla
 def centrar_ventana(ventana):
@@ -18,6 +81,17 @@ def mostrar_distribuidores():
     for distribuidor in distribuidores:
         tabla.insert("", "end", values=distribuidor)
 
+# Función para buscar distribuidores
+def buscar_distribuidor():
+    criterio = entry_busqueda.get()  # Usar la entrada de búsqueda global
+    if criterio:
+        distribuidores = buscar_distribuidores(criterio)
+        for row in tabla.get_children():
+            tabla.delete(row)
+        for distribuidor in distribuidores:
+            tabla.insert("", "end", values=distribuidor)
+    else:
+        messagebox.showwarning("Advertencia", "Ingresa un criterio de búsqueda")
 # Función para crear un nuevo distribuidor
 def crear_distribuidor():
     def guardar_distribuidor():
@@ -27,9 +101,8 @@ def crear_distribuidor():
         calificacion = int(entry_calificacion.get())
         insertar_distribuidor(nombre, certificacion, contacto, calificacion)
         top.destroy()
-        actualizar_tabla()  # Actualiza la tabla después de insertar
-        messagebox.showinfo("Éxito", "Distribuidor insertado con éxito")  # Notificación de éxito
-
+        actualizar_tabla()
+        messagebox.showinfo("Éxito", "Distribuidor insertado con éxito")
 
     top = tk.Toplevel()
     top.title("Crear Distribuidor")
@@ -52,13 +125,13 @@ def crear_distribuidor():
 
     btn_guardar = tk.Button(top, text="Guardar", command=guardar_distribuidor)
     btn_guardar.pack()
-    centrar_ventana(top)  # Centrar la ventana secundaria
+    centrar_ventana(top)
 
 # Función para modificar un distribuidor
 def modificar_distribuidor():
     seleccion = tabla.focus()
     distribuidor = tabla.item(seleccion, 'values')
-    
+
     def guardar_cambios():
         distribuidor_id = distribuidor[0]
         nuevo_nombre = entry_nombre.get()
@@ -67,9 +140,8 @@ def modificar_distribuidor():
         nueva_calificacion = int(entry_calificacion.get())
         actualizar_distribuidor(distribuidor_id, nuevo_nombre, nueva_certificacion, nuevo_contacto, nueva_calificacion)
         top.destroy()
-        actualizar_tabla()  # Actualiza la tabla después de modificar
-        messagebox.showinfo("Éxito", "Distribuidor actualizado con éxito")  # Notificación de éxito
-
+        actualizar_tabla()
+        messagebox.showinfo("Éxito", "Distribuidor actualizado con éxito")
 
     top = tk.Toplevel()
     top.title("Modificar Distribuidor")
@@ -96,7 +168,7 @@ def modificar_distribuidor():
 
     btn_guardar = tk.Button(top, text="Guardar Cambios", command=guardar_cambios)
     btn_guardar.pack()
-    centrar_ventana(top)  # Centrar la ventana secundaria
+    centrar_ventana(top)
 
 # Función para eliminar un distribuidor
 def eliminar_distribuidor_ui():
@@ -104,65 +176,11 @@ def eliminar_distribuidor_ui():
     distribuidor = tabla.item(seleccion, 'values')
     distribuidor_id = distribuidor[0]
     eliminar_distribuidor(distribuidor_id)
-    actualizar_tabla()  # Actualiza la tabla después de eliminar
-    messagebox.showinfo("Éxito", "Distribuidor eliminado con éxito")  # Notificación de éxito
-
+    actualizar_tabla()
+    messagebox.showinfo("Éxito", "Distribuidor eliminado con éxito")
 
 # Actualizar los datos de la tabla
 def actualizar_tabla():
-    # Limpiar la tabla
     for row in tabla.get_children():
         tabla.delete(row)
-    # Volver a cargar los distribuidores
     mostrar_distribuidores()
-
-# Configuración de la ventana principal
-root = tk.Tk()
-root.title("Gestión de Distribuidores")
-root.geometry("800x400")
-
-# Centrar la ventana principal
-centrar_ventana(root)
-
-# Título
-titulo = tk.Label(root, text="Gestión de Distribuidores", font=("Arial", 16))
-titulo.pack(pady=10)
-
-# Crear frame para la tabla
-frame_tabla = tk.Frame(root)
-frame_tabla.pack(pady=10)
-
-# Encabezados de la tabla
-columnas = ("ID", "Nombre", "Certificación", "Contacto", "Calificación")
-tabla = ttk.Treeview(frame_tabla, columns=columnas, show='headings')
-
-# Definir encabezados
-for columna in columnas:
-    tabla.heading(columna, text=columna)
-
-# Ancho de columnas
-tabla.column("ID", width=50)
-tabla.column("Nombre", width=150)
-tabla.column("Certificación", width=150)
-tabla.column("Contacto", width=150)
-tabla.column("Calificación", width=100)
-
-# Insertar datos en la tabla
-mostrar_distribuidores()
-tabla.pack()
-
-# Crear frame para los botones de CRUD
-frame_botones = tk.Frame(root)
-frame_botones.pack(pady=10)
-
-# Botones CRUD con colores
-btn_crear = tk.Button(frame_botones, text="Crear Distribuidor", command=crear_distribuidor, bg="green", fg="white")
-btn_crear.grid(row=0, column=0, padx=10)
-
-btn_modificar = tk.Button(frame_botones, text="Modificar Distribuidor", command=modificar_distribuidor, bg="blue", fg="white")
-btn_modificar.grid(row=0, column=1, padx=10)
-
-btn_eliminar = tk.Button(frame_botones, text="Eliminar Distribuidor", command=eliminar_distribuidor_ui, bg="red", fg="white")
-btn_eliminar.grid(row=0, column=2, padx=10)
-
-root.mainloop()
