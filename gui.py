@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 from services.gestion_entregas import insertar_distribuidor, eliminar_distribuidor, actualizar_distribuidor, obtener_distribuidores
 
 # Función para centrar la ventana en la pantalla
@@ -27,6 +28,8 @@ def crear_distribuidor():
         insertar_distribuidor(nombre, certificacion, contacto, calificacion)
         top.destroy()
         actualizar_tabla()  # Actualiza la tabla después de insertar
+        messagebox.showinfo("Éxito", "Distribuidor insertado con éxito")  # Notificación de éxito
+
 
     top = tk.Toplevel()
     top.title("Crear Distribuidor")
@@ -65,6 +68,8 @@ def modificar_distribuidor():
         actualizar_distribuidor(distribuidor_id, nuevo_nombre, nueva_certificacion, nuevo_contacto, nueva_calificacion)
         top.destroy()
         actualizar_tabla()  # Actualiza la tabla después de modificar
+        messagebox.showinfo("Éxito", "Distribuidor actualizado con éxito")  # Notificación de éxito
+
 
     top = tk.Toplevel()
     top.title("Modificar Distribuidor")
@@ -100,6 +105,8 @@ def eliminar_distribuidor_ui():
     distribuidor_id = distribuidor[0]
     eliminar_distribuidor(distribuidor_id)
     actualizar_tabla()  # Actualiza la tabla después de eliminar
+    messagebox.showinfo("Éxito", "Distribuidor eliminado con éxito")  # Notificación de éxito
+
 
 # Actualizar los datos de la tabla
 def actualizar_tabla():
