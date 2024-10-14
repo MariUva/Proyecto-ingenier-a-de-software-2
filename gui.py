@@ -112,6 +112,11 @@ def iniciar_gui():
 
     tabla_entregas.pack()
 
+     # Mostrar las entregas al cargar la pestaña
+    mostrar_entregas()
+    tabla_entregas.pack()
+
+
     # Botón para cargar entregas de un distribuidor seleccionado
     btn_cargar_entregas = tk.Button(frame_entregas, text="Cargar Entregas", command=cargar_entregas_distribuidor, bg="yellow", fg="black")
     btn_cargar_entregas.pack(pady=10)
@@ -146,11 +151,15 @@ def iniciar_gui():
     tabla_comentarios.column("Comentario", width=300)
     tabla_comentarios.column("Fecha", width=150)
 
+    # Mostrar los comentarios al cargar la pestaña
+    mostrar_comentarios()
     tabla_comentarios.pack()
 
     # Botón para cargar comentarios de un distribuidor seleccionado
     btn_cargar_comentarios = tk.Button(frame_comentarios, text="Cargar Comentarios", command=cargar_comentarios_distribuidor, bg="yellow", fg="black")
     btn_cargar_comentarios.pack(pady=10)
+
+
 
 # ------------------------- PESTAÑA VALIDAR CERTIFICACIONES -------------------------
     
@@ -184,6 +193,10 @@ def iniciar_gui():
     tabla_certificaciones.column("Estado", width=100)
     tabla_certificaciones.column("Puntuación", width=100)
 
+    tabla_certificaciones.pack()
+
+     # Mostrar las certificaciones al cargar la pestaña
+    mostrar_certificaciones()
     tabla_certificaciones.pack()
 
     # Botón para cargar certificaciones de un distribuidor seleccionado
@@ -225,6 +238,19 @@ def mostrar_distribuidores():
     for distribuidor in distribuidores:
         tabla_distribuidores.insert("", "end", values=distribuidor)
 
+# Función para mostrar los comentarios en la tabla al iniciar o cuando se selecciona la pestaña
+def mostrar_comentarios():
+    # Limpiar la tabla de comentarios antes de cargar nuevos datos
+    for row in tabla_comentarios.get_children():
+        tabla_comentarios.delete(row)
+
+    # Obtener todos los comentarios de la base de datos
+    comentarios = servicios.obtener_todos_los_comentarios()
+
+    # Insertar los comentarios en la tabla
+    for comentario in comentarios:
+        tabla_comentarios.insert("", "end", values=comentario)
+
 # Función para cargar las entregas del distribuidor seleccionado
 def cargar_entregas_distribuidor():
     # Obtener el distribuidor seleccionado en la tabla de distribuidores
@@ -246,9 +272,13 @@ def cargar_entregas_distribuidor():
 
 # Función para cargar los comentarios del distribuidor seleccionado
 def cargar_comentarios_distribuidor():
-    # Obtener el distribuidor seleccionado en la tabla de distribuidores
     seleccion = tabla_distribuidores.focus()
     distribuidor = tabla_distribuidores.item(seleccion, 'values')
+    
+    if not distribuidor:
+        messagebox.showwarning("Advertencia", "Selecciona un distribuidor primero")
+        return
+    
     distribuidor_id = distribuidor[0]
 
     # Limpiar tabla de comentarios
@@ -261,6 +291,33 @@ def cargar_comentarios_distribuidor():
     # Insertar comentarios en la tabla
     for comentario in comentarios:
         tabla_comentarios.insert("", "end", values=comentario)
+
+# Función para mostrar todas las entregas en la tabla al iniciar o cuando se selecciona la pestaña
+def mostrar_entregas():
+    # Limpiar la tabla de entregas antes de cargar nuevos datos
+    for row in tabla_entregas.get_children():
+        tabla_entregas.delete(row)
+
+    # Obtener todas las entregas de la base de datos
+    entregas = servicios.obtener_todas_las_entregas()
+
+    # Insertar las entregas en la tabla
+    for entrega in entregas:
+        tabla_entregas.insert("", "end", values=entrega)
+
+# Función para mostrar todas las certificaciones en la tabla al iniciar o cuando se selecciona la pestaña
+def mostrar_certificaciones():
+    # Limpiar la tabla de certificaciones antes de cargar nuevos datos
+    for row in tabla_certificaciones.get_children():
+        tabla_certificaciones.delete(row)
+
+    # Obtener todas las certificaciones de la base de datos
+    certificaciones = servicios.obtener_todas_las_certificaciones()
+
+    # Insertar las certificaciones en la tabla
+    for certificacion in certificaciones:
+        tabla_certificaciones.insert("", "end", values=certificacion)
+
 
 
 # Función para buscar distribuidores
