@@ -129,3 +129,17 @@ class Servicios:
         self.cursor.execute(query)
         certificaciones = self.cursor.fetchall()
         return certificaciones
+
+def obtener_distribuidores(self):
+        # Lógica para obtener distribuidores desde la base de datos
+        return [
+            (1, "Distribuidor A", "Certificación A", "Contacto A", 4.5),
+            (2, "Distribuidor B", "Certificación B", "Contacto B", 4.2)
+            # Devuelve más distribuidores
+        ]
+def buscar_distribuidores(self, criterio):
+        # Lógica para buscar distribuidores según el criterio
+        return [
+            (1, "Distribuidor A", "Certificación A", "Contacto A", 4.5),
+            # Filtrar distribuidores según el criterio
+        ]

@@ -1,13 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from servicios import Servicios
+from fpdf import FPDF
 
 # Inicializar la clase Servicios para conectar a la base de datos
-
 servicios = Servicios()
 
-# Variable global para almacenar el distribuidor seleccionado
-distribuidor_seleccionado = None
+# Lista global para almacenar los distribuidores seleccionados
+distribuidores_seleccionados = []
 
 def iniciar_gui():
     root = tk.Tk()
@@ -29,8 +29,11 @@ def iniciar_gui():
     frame_entregas = tk.Frame(notebook)
     notebook.add(frame_entregas, text="Gestión de entregas")
 
-    # ------------------------- PESTAÑA DISTRIBUIDORES -------------------------
+    # Pestaña de Distribuidores Seleccionados
+    frame_distribuidores_seleccionados = tk.Frame(notebook)
+    notebook.add(frame_distribuidores_seleccionados, text="Distribuidores Seleccionados")
 
+    # ------------------------- PESTAÑA DISTRIBUIDORES -------------------------
     # Título en la pestaña de Distribuidores
     titulo = tk.Label(frame_distribuidores, text="Gestión de Distribuidores", font=("Arial", 16))
     titulo.pack(pady=10)
@@ -71,7 +74,7 @@ def iniciar_gui():
     btn_buscar = tk.Button(frame_busqueda, text="Buscar", command=buscar_distribuidor, bg="yellow", fg="black")
     btn_buscar.grid(row=0, column=2)
 
-    # Crear frame para los botones de CRUD
+    # Crear frame para los botones de CRUD y seleccionar distribuidor
     frame_botones = tk.Frame(frame_distribuidores)
     frame_botones.pack(pady=10)
 
@@ -84,6 +87,42 @@ def iniciar_gui():
 
     btn_eliminar = tk.Button(frame_botones, text="Eliminar Distribuidor", command=eliminar_distribuidor_ui, bg="red", fg="white")
     btn_eliminar.grid(row=0, column=2, padx=10)
+
+    # Botón para seleccionar distribuidor
+    btn_seleccionar = tk.Button(frame_botones, text="Seleccionar Distribuidor", command=seleccionar_distribuidor, bg="orange", fg="white")
+    btn_seleccionar.grid(row=0, column=3, padx=10)
+
+    # ------------------------- PESTAÑA DISTRIBUIDORES SELECCIONADOS -------------------------
+    # Título en la pestaña de Distribuidores Seleccionados
+    titulo_seleccionados = tk.Label(frame_distribuidores_seleccionados, text="Distribuidores Seleccionados", font=("Arial", 16))
+    titulo_seleccionados.pack(pady=10)
+
+    # Crear frame para la tabla de distribuidores seleccionados
+    frame_tabla_seleccionados = tk.Frame(frame_distribuidores_seleccionados)
+    frame_tabla_seleccionados.pack(pady=10)
+
+    # Encabezados de la tabla de distribuidores seleccionados
+    columnas_seleccionados = ("ID", "Nombre", "Certificación", "Contacto", "Calificación")
+    global tabla_distribuidores_seleccionados
+    tabla_distribuidores_seleccionados = ttk.Treeview(frame_tabla_seleccionados, columns=columnas_seleccionados, show='headings')
+
+    # Definir encabezados para la tabla de distribuidores seleccionados
+    for columna in columnas_seleccionados:
+        tabla_distribuidores_seleccionados.heading(columna, text=columna)
+
+    # Ancho de columnas de la tabla de seleccionados
+    tabla_distribuidores_seleccionados.column("ID", width=50)
+    tabla_distribuidores_seleccionados.column("Nombre", width=150)
+    tabla_distribuidores_seleccionados.column("Certificación", width=150)
+    tabla_distribuidores_seleccionados.column("Contacto", width=150)
+    tabla_distribuidores_seleccionados.column("Calificación", width=100)
+
+    tabla_distribuidores_seleccionados.pack()
+
+    # Botón para generar reporte en PDF
+    btn_generar_pdf = tk.Button(frame_distribuidores_seleccionados, text="Generar Reporte PDF", command=generar_reporte_pdf, bg="green", fg="white")
+    btn_generar_pdf.pack(pady=10)
+
 
     # ------------------------- PESTAÑA ENTREGAS -------------------------
 
@@ -213,6 +252,66 @@ def centrar_ventana(ventana):
     x = (ventana.winfo_screenwidth() // 2) - (width // 2)
     y = (ventana.winfo_screenheight() // 2) - (height // 2)
     ventana.geometry(f'{width}x{height}+{x}+{y}')
+
+
+# Función para seleccionar distribuidor y añadirlo a la pestaña "Distribuidores Seleccionados"
+def seleccionar_distribuidor():
+    seleccion = tabla_distribuidores.focus()
+    distribuidor = tabla_distribuidores.item(seleccion, 'values')
+    
+    if not distribuidor:
+        messagebox.showwarning("Advertencia", "Selecciona un distribuidor primero")
+        return
+
+    # Verificar si el distribuidor ya fue seleccionado
+    if distribuidor in distribuidores_seleccionados:
+        messagebox.showinfo("Información", "Este distribuidor ya ha sido seleccionado.")
+        return
+
+    # Añadir el distribuidor a la lista de seleccionados y actualizar la tabla de seleccionados
+    distribuidores_seleccionados.append(distribuidor)
+    tabla_distribuidores_seleccionados.insert("", "end", values=distribuidor)
+
+#------------------ GENERAR REPORTE PDF---------------
+def generar_reporte_pdf():
+    if not distribuidores_seleccionados:
+        messagebox.showwarning("Advertencia", "No hay distribuidores seleccionados para generar el reporte.")
+        return
+
+    # Crear el PDF
+    pdf = FPDF()
+    pdf.add_page()
+
+    # Configurar fuente y título
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(200, 10, "Reporte de Distribuidores Seleccionados", ln=True, align='C')
+    pdf.ln(10)  # Espacio vertical
+
+    # Agregar encabezados de la tabla
+    pdf.set_font("Arial", "B", 10)
+    headers = ["ID", "Nombre", "Certificación", "Contacto", "Calificación"]
+    col_widths = [20, 40, 60, 60, 20]  # Ancho de las columnas
+    for i, header in enumerate(headers):
+        pdf.cell(col_widths[i], 10, header, 1, 0, 'C')
+    pdf.ln()
+
+    # Agregar datos de distribuidores seleccionados
+    pdf.set_font("Arial", "", 10)
+    for distribuidor in distribuidores_seleccionados:
+        pdf.cell(col_widths[0], 10, str(distribuidor[0]), 1, 0, 'C')  # ID
+        pdf.cell(col_widths[1], 10, distribuidor[1], 1, 0, 'C')      # Nombre
+        pdf.cell(col_widths[2], 10, distribuidor[2], 1, 0, 'C')      # Certificación
+        pdf.cell(col_widths[3], 10, distribuidor[3], 1, 0, 'C')      # Contacto
+        pdf.cell(col_widths[4], 10, str(distribuidor[4]), 1, 0, 'C') # Calificación
+        pdf.ln()
+
+    # Guardar el archivo PDF
+    try:
+        pdf.output("reporte_distribuidores_seleccionados.pdf")
+        messagebox.showinfo("Éxito", "Reporte PDF generado exitosamente.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al generar el PDF: {e}")
+
 
 # Función para cargar las certificaciones del distribuidor seleccionado
 def cargar_certificaciones_distribuidor():
