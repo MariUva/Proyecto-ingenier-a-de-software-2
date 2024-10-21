@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from servicios import Servicios
+from tkcalendar import DateEntry
 from fpdf import FPDF
 
 # Inicializar la clase Servicios para conectar a la base de datos
@@ -12,7 +13,7 @@ distribuidores_seleccionados = []
 def iniciar_gui():
     root = tk.Tk()
     root.title("Gestión de Distribuidores")
-    root.geometry("800x400")
+    root.geometry("1024x500")
 
     # Centrar la ventana principal
     centrar_ventana(root)
@@ -32,6 +33,7 @@ def iniciar_gui():
     # Pestaña de Distribuidores Seleccionados
     frame_distribuidores_seleccionados = tk.Frame(notebook)
     notebook.add(frame_distribuidores_seleccionados, text="Distribuidores Seleccionados")
+
 
     # ------------------------- PESTAÑA DISTRIBUIDORES -------------------------
     # Título en la pestaña de Distribuidores
@@ -122,7 +124,6 @@ def iniciar_gui():
     # Botón para generar reporte en PDF
     btn_generar_pdf = tk.Button(frame_distribuidores_seleccionados, text="Generar Reporte PDF", command=generar_reporte_pdf, bg="green", fg="white")
     btn_generar_pdf.pack(pady=10)
-
 
     # ------------------------- PESTAÑA ENTREGAS -------------------------
 
@@ -242,8 +243,199 @@ def iniciar_gui():
     btn_cargar_certificaciones = tk.Button(frame_certificaciones, text="Cargar Certificaciones", command=cargar_certificaciones_distribuidor, bg="yellow", fg="black")
     btn_cargar_certificaciones.pack(pady=10)
 
+# ----------------------------- DISTRIBUIDORES SUGERIDOS -----------------------------
+    # Crear frame para la pestaña de distribuidores sugeridos
+    frame_sugeridos = tk.Frame(notebook)
+    notebook.add(frame_sugeridos, text="Distribuidores Sugeridos")
+
+    # Título para la pestaña de distribuidores sugeridos
+    titulo_sugeridos = tk.Label(frame_sugeridos, text="Distribuidores Sugeridos", font=("Arial", 16))
+    titulo_sugeridos.pack(pady=10)
+
+    # Crear frame para la tabla de distribuidores sugeridos
+    frame_tabla_sugeridos = tk.Frame(frame_sugeridos)
+    frame_tabla_sugeridos.pack(pady=10)
+
+    # Encabezados de la tabla de distribuidores sugeridos
+    columnas_sugeridos = ("ID", "Nombre", "Certificación", "Calificación", "Estado de Entrega")
+    global tabla_sugeridos_distribuidores
+    tabla_sugeridos_distribuidores = ttk.Treeview(frame_tabla_sugeridos, columns=columnas_sugeridos, show='headings')
+
+    # Definir encabezados
+    for columna in columnas_sugeridos:
+        tabla_sugeridos_distribuidores.heading(columna, text=columna)
+
+    # Ancho de columnas
+    tabla_sugeridos_distribuidores.column("ID", width=50)
+    tabla_sugeridos_distribuidores.column("Nombre", width=150)
+    tabla_sugeridos_distribuidores.column("Certificación", width=150)
+    tabla_sugeridos_distribuidores.column("Calificación", width=100)
+    tabla_sugeridos_distribuidores.column("Estado de Entrega", width=150)
+
+    # Insertar datos en la tabla
+    mostrar_distribuidores_sugeridos()
+
+    # Empaquetar la tabla
+    tabla_sugeridos_distribuidores.pack(expand=True, fill='both')
+
+#-----------------------------HISTORIAL DISTRIBUIDORES----------------
+
+    # Crear frame para la tabla de historial de distribuidores
+    frame_historial = tk.Frame(notebook)
+    notebook.add(frame_historial, text="Historial de Distribuidores")
+
+    # Título para la pestaña de historial
+    titulo_historial = tk.Label(frame_historial, text="Historial de Distribuidores", font=("Arial", 16))
+    titulo_historial.pack(pady=10)
+
+    # Crear frame para la tabla de historial
+    frame_tabla_historial = tk.Frame(frame_historial)
+    frame_tabla_historial.pack(pady=10)
+
+    # Encabezados de la tabla de historial de distribuidores
+    columnas_historial = ("ID", "Nombre", "Certificación", "Contacto", "Calificación", "Eliminado")
+    global tabla_historial_distribuidores
+    tabla_historial_distribuidores = ttk.Treeview(frame_tabla_historial, columns=columnas_historial, show='headings')
+
+    # Definir encabezados
+    for columna in columnas_historial:
+        tabla_historial_distribuidores.heading(columna, text=columna)
+
+    # Ancho de columnas
+    tabla_historial_distribuidores.column("ID", width=50)
+    tabla_historial_distribuidores.column("Nombre", width=150)
+    tabla_historial_distribuidores.column("Certificación", width=150)
+    tabla_historial_distribuidores.column("Contacto", width=150)
+    tabla_historial_distribuidores.column("Calificación", width=100)
+    tabla_historial_distribuidores.column("Eliminado", width=80)
+
+    # Insertar datos en la tabla
+    mostrar_historial_distribuidores()
+    tabla_historial_distribuidores.pack()
+
+    
+
     root.mainloop()
 
+
+def modificar_distribuidor():
+    seleccion = tabla_distribuidores.focus()
+    distribuidor = tabla_distribuidores.item(seleccion, 'values')
+
+    if not distribuidor:
+        messagebox.showwarning("Advertencia", "Selecciona un distribuidor para modificar")
+        return
+
+    # Extraer los valores actuales del distribuidor
+    distribuidor_id = distribuidor[0]
+    nombre_actual = distribuidor[1]
+    certificacion_actual = distribuidor[2]
+    contacto_actual = distribuidor[3]
+    calificacion_actual = distribuidor[4]
+
+    def guardar_cambios():
+        try:
+            # Obtener los datos del distribuidor
+            nuevo_nombre = entry_nombre.get()
+
+            # Certificación: Obtener el índice seleccionado y usar el ID asociado.
+            certificacion_index = combo_certificacion.current()
+            nueva_certificacion_id = certificacion_ids[certificacion_index]
+
+            nuevo_contacto = entry_contacto.get()
+
+            # Obtener los datos de la calificación
+            nuevo_comentario = entry_comentario.get()
+            try:
+                nueva_calificacion_valor = int(entry_calificacion.get())
+                if nueva_calificacion_valor < 1 or nueva_calificacion_valor > 5:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Error", "La calificación debe ser un número entre 1 y 5.")
+                return
+
+            fecha_calificacion = date_entry_fecha_calificacion.get_date().strftime('%Y-%m-%d')
+            cliente = entry_cliente.get()
+
+            # Obtener los datos de la entrega
+            nueva_fecha_entrega = date_entry_fecha_entrega.get_date().strftime('%Y-%m-%d')
+            nuevo_estado_entrega = combo_estado_entrega.get()
+
+            # Actualizar el distribuidor en la base de datos
+            servicios.actualizar_distribuidor(distribuidor_id, nuevo_nombre, nueva_certificacion_id, nuevo_contacto, nueva_calificacion_valor)
+
+            # Actualizar la entrega para el distribuidor
+            servicios.actualizar_entrega(distribuidor_id, nueva_fecha_entrega, nuevo_estado_entrega)
+
+            # Actualizar la calificación para el distribuidor
+            servicios.actualizar_calificacion(distribuidor_id, nuevo_comentario, nueva_calificacion_valor, fecha_calificacion, cliente)
+
+            top.destroy()
+            actualizar_tabla()
+            messagebox.showinfo("Éxito", "Distribuidor modificado con éxito")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ha ocurrido un error: {str(e)}")
+
+    # Crear ventana para modificar distribuidor
+    top = tk.Toplevel()
+    top.title("Modificar Distribuidor")
+
+    # Datos del distribuidor
+    tk.Label(top, text="Nombre del Distribuidor").grid(row=0, column=0, padx=10, pady=5, sticky="e")
+    entry_nombre = tk.Entry(top)
+    entry_nombre.insert(0, nombre_actual)
+    entry_nombre.grid(row=0, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Certificación").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+    certificaciones = servicios.obtener_certificaciones()
+    certificacion_ids = [str(cert[0]) for cert in certificaciones]
+    certificacion_nombres = [cert[1] for cert in certificaciones]
+    combo_certificacion = ttk.Combobox(top, values=certificacion_nombres)
+    combo_certificacion.set(certificacion_actual)
+    combo_certificacion.grid(row=1, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Contacto").grid(row=2, column=0, padx=10, pady=5, sticky="e")
+    entry_contacto = tk.Entry(top)
+    entry_contacto.insert(0, contacto_actual)
+    entry_contacto.grid(row=2, column=1, padx=10, pady=5)
+
+    # Datos de la calificación
+    tk.Label(top, text="Comentario de Calificación").grid(row=3, column=0, padx=10, pady=5, sticky="e")
+    entry_comentario = tk.Entry(top)
+    entry_comentario.insert(0, "Comentario actual")  # Placeholder, reemplaza con valor actual si es necesario
+    entry_comentario.grid(row=3, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Calificación (1-5)").grid(row=4, column=0, padx=10, pady=5, sticky="e")
+    entry_calificacion = tk.Entry(top)
+    entry_calificacion.insert(0, str(calificacion_actual))  # Valor actual
+    entry_calificacion.grid(row=4, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Fecha de Calificación").grid(row=5, column=0, padx=10, pady=5, sticky="e")
+    date_entry_fecha_calificacion = DateEntry(top, date_pattern='y-mm-dd')
+    date_entry_fecha_calificacion.grid(row=5, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Cliente").grid(row=6, column=0, padx=10, pady=5, sticky="e")
+    entry_cliente = tk.Entry(top)
+    entry_cliente.insert(0, "Cliente actual")  # Placeholder, reemplaza con valor actual si es necesario
+    entry_cliente.grid(row=6, column=1, padx=10, pady=5)
+
+    # Datos de la entrega
+    tk.Label(top, text="Fecha de Entrega").grid(row=7, column=0, padx=10, pady=5, sticky="e")
+    date_entry_fecha_entrega = DateEntry(top, date_pattern='y-mm-dd')
+    date_entry_fecha_entrega.grid(row=7, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Estado de Entrega").grid(row=8, column=0, padx=10, pady=5, sticky="e")
+    combo_estado_entrega = ttk.Combobox(top, values=["Completada", "Pendiente"])
+    combo_estado_entrega.grid(row=8, column=1, padx=10, pady=5)
+
+    # Botón para guardar
+    btn_guardar = tk.Button(top, text="Guardar Cambios", command=guardar_cambios)
+    btn_guardar.grid(row=9, column=0, columnspan=2, pady=20)
+
+    centrar_ventana(top)
+
+
+    
 # Función para centrar la ventana en la pantalla
 def centrar_ventana(ventana):
     ventana.update_idletasks()
@@ -318,13 +510,18 @@ def cargar_certificaciones_distribuidor():
     # Obtener el distribuidor seleccionado en la tabla de distribuidores
     seleccion = tabla_distribuidores.focus()
     distribuidor = tabla_distribuidores.item(seleccion, 'values')
-    distribuidor_id = distribuidor[0]
+    
+    if not distribuidor:
+        messagebox.showwarning("Advertencia", "Selecciona un distribuidor primero")
+        return
+
+    distribuidor_id = distribuidor[0]  # Obtener el ID del distribuidor seleccionado
 
     # Limpiar tabla de certificaciones
     for row in tabla_certificaciones.get_children():
         tabla_certificaciones.delete(row)
 
-    # Obtener certificaciones del distribuidor
+    # Obtener certificaciones del distribuidor (filtradas por el id del distribuidor seleccionado)
     certificaciones = servicios.obtener_certificaciones_distribuidor(distribuidor_id)
 
     # Insertar certificaciones en la tabla
@@ -371,6 +568,7 @@ def cargar_entregas_distribuidor():
 
 # Función para cargar los comentarios del distribuidor seleccionado
 def cargar_comentarios_distribuidor():
+    # Obtener el distribuidor seleccionado
     seleccion = tabla_distribuidores.focus()
     distribuidor = tabla_distribuidores.item(seleccion, 'values')
     
@@ -378,18 +576,22 @@ def cargar_comentarios_distribuidor():
         messagebox.showwarning("Advertencia", "Selecciona un distribuidor primero")
         return
     
-    distribuidor_id = distribuidor[0]
+    distribuidor_id = distribuidor[0]  # Obtener el ID del distribuidor seleccionado
 
-    # Limpiar tabla de comentarios
+    # Limpiar la tabla de comentarios
     for row in tabla_comentarios.get_children():
         tabla_comentarios.delete(row)
 
-    # Obtener comentarios del distribuidor
+    # Obtener los comentarios asociados a este distribuidor
     comentarios = servicios.obtener_comentarios_distribuidor(distribuidor_id)
 
-    # Insertar comentarios en la tabla
-    for comentario in comentarios:
-        tabla_comentarios.insert("", "end", values=comentario)
+    # Verificar si hay comentarios y si están siendo insertados correctamente
+    if comentarios:
+        print(f"Insertando los comentarios en la tabla: {comentarios}")
+        for comentario in comentarios:
+            tabla_comentarios.insert("", "end", values=comentario)
+    else:
+        print(f"No se encontraron comentarios para el distribuidor {distribuidor_id}")
 
 # Función para mostrar todas las entregas en la tabla al iniciar o cuando se selecciona la pestaña
 def mostrar_entregas():
@@ -434,92 +636,194 @@ def buscar_distribuidor():
 # Función para crear un nuevo distribuidor
 def crear_distribuidor():
     def guardar_distribuidor():
+        # Obtener los datos del distribuidor
         nombre = entry_nombre.get()
-        certificacion = entry_certificacion.get()
+
+        # Certificación: Obtener el índice seleccionado y usar el ID asociado.
+        certificacion_index = combo_certificacion.current()
+        certificacion_id = certificacion_ids[certificacion_index]
+
         contacto = entry_contacto.get()
-        calificacion = int(entry_calificacion.get())
-        servicios.insertar_distribuidor(nombre, certificacion, contacto, calificacion)
+
+        # Obtener los datos de la calificación del distribuidor
+        comentario = entry_comentario.get()
+        try:
+            calificacion_valor = int(entry_calificacion.get())
+            if calificacion_valor < 1 or calificacion_valor > 5:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror("Error", "La calificación debe ser un número entre 1 y 5.")
+            return
+
+        fecha_calificacion = date_entry_fecha_calificacion.get_date().strftime('%Y-%m-%d')
+        cliente = entry_cliente.get()
+
+        # Datos de la certificación
+        nombre_certificacion = entry_nombre_certificacion.get()
+        organismo_emisor = entry_organismo_emisor.get()
+        fecha_emision = date_entry_fecha_emision.get_date().strftime('%Y-%m-%d')
+        fecha_expiracion = date_entry_fecha_expiracion.get_date().strftime('%Y-%m-%d')
+
+        # Mapea el estado de la certificación a un valor booleano
+        estado_certificacion = combo_estado_certificacion.get()
+        estado_certificacion_valor = 1 if estado_certificacion == "Válida" else 0
+
+        puntuacion = float(entry_puntuacion.get())
+
+        # Obtener los datos de la entrega
+        fecha_entrega = date_entry_fecha_entrega.get_date().strftime('%Y-%m-%d')
+        estado_entrega = combo_estado_entrega.get()
+
+        # Insertar el distribuidor
+        distribuidor_id = servicios.insertar_distribuidor(nombre, certificacion_id, contacto, calificacion_valor)
+
+        # Insertar la certificación para el distribuidor
+        certificacion_id = servicios.insertar_certificacion(nombre_certificacion, organismo_emisor, fecha_emision, fecha_expiracion, estado_certificacion_valor, puntuacion)
+
+        # Insertar la entrega para el distribuidor
+        servicios.insertar_entrega(distribuidor_id, fecha_entrega, estado_entrega)
+
+        # Insertar la calificación para el distribuidor
+        servicios.insertar_calificacion(distribuidor_id, comentario, calificacion_valor, fecha_calificacion, cliente)
+
+        # Cerrar la ventana y actualizar la tabla
         top.destroy()
         actualizar_tabla()
-        messagebox.showinfo("Éxito", "Distribuidor insertado con éxito")
+        messagebox.showinfo("Éxito", "Distribuidor y sus datos insertados con éxito")
 
     top = tk.Toplevel()
     top.title("Crear Distribuidor")
 
-    tk.Label(top, text="Nombre").pack()
+    # Ajustar el tamaño de la ventana para evitar que sea demasiado grande
+    top.geometry("600x600")  # Puedes ajustar el tamaño según sea necesario
+    top.columnconfigure(0, weight=1)
+    top.columnconfigure(1, weight=1)
+
+    # Datos del distribuidor (Primera columna)
+    tk.Label(top, text="Nombre del Distribuidor").grid(row=0, column=0, padx=10, pady=5, sticky="e")
     entry_nombre = tk.Entry(top)
-    entry_nombre.pack()
+    entry_nombre.grid(row=0, column=1, padx=10, pady=5)
 
-    tk.Label(top, text="Certificación").pack()
-    entry_certificacion = tk.Entry(top)
-    entry_certificacion.pack()
+    tk.Label(top, text="Certificación").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+    certificaciones = servicios.obtener_certificaciones()
+    certificacion_ids = [str(cert[0]) for cert in certificaciones]
+    certificacion_nombres = [cert[1] for cert in certificaciones]
+    combo_certificacion = ttk.Combobox(top, values=certificacion_nombres)
+    combo_certificacion.grid(row=1, column=1, padx=10, pady=5)
 
-    tk.Label(top, text="Contacto").pack()
+    tk.Label(top, text="Contacto").grid(row=2, column=0, padx=10, pady=5, sticky="e")
     entry_contacto = tk.Entry(top)
-    entry_contacto.pack()
+    entry_contacto.grid(row=2, column=1, padx=10, pady=5)
 
-    tk.Label(top, text="Calificación").pack()
+    # Datos de la calificación (Segunda columna)
+    tk.Label(top, text="Comentario de Calificación").grid(row=3, column=0, padx=10, pady=5, sticky="e")
+    entry_comentario = tk.Entry(top)
+    entry_comentario.grid(row=3, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Calificación (1-5)").grid(row=4, column=0, padx=10, pady=5, sticky="e")
     entry_calificacion = tk.Entry(top)
-    entry_calificacion.pack()
+    entry_calificacion.grid(row=4, column=1, padx=10, pady=5)
 
+    tk.Label(top, text="Fecha de Calificación").grid(row=5, column=0, padx=10, pady=5, sticky="e")
+    date_entry_fecha_calificacion = DateEntry(top, date_pattern='y-mm-dd')
+    date_entry_fecha_calificacion.grid(row=5, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Cliente").grid(row=6, column=0, padx=10, pady=5, sticky="e")
+    entry_cliente = tk.Entry(top)
+    entry_cliente.grid(row=6, column=1, padx=10, pady=5)
+
+    # Datos de la certificación (Primera columna)
+    tk.Label(top, text="Nombre de la Certificación").grid(row=7, column=0, padx=10, pady=5, sticky="e")
+    entry_nombre_certificacion = tk.Entry(top)
+    entry_nombre_certificacion.grid(row=7, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Organismo Emisor").grid(row=8, column=0, padx=10, pady=5, sticky="e")
+    entry_organismo_emisor = tk.Entry(top)
+    entry_organismo_emisor.grid(row=8, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Fecha de Emisión").grid(row=9, column=0, padx=10, pady=5, sticky="e")
+    date_entry_fecha_emision = DateEntry(top, date_pattern='y-mm-dd')
+    date_entry_fecha_emision.grid(row=9, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Fecha de Expiración").grid(row=10, column=0, padx=10, pady=5, sticky="e")
+    date_entry_fecha_expiracion = DateEntry(top, date_pattern='y-mm-dd')
+    date_entry_fecha_expiracion.grid(row=10, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Estado de la Certificación").grid(row=11, column=0, padx=10, pady=5, sticky="e")
+    combo_estado_certificacion = ttk.Combobox(top, values=["Válida", "Expirada"])
+    combo_estado_certificacion.grid(row=11, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Puntuación de la Certificación").grid(row=12, column=0, padx=10, pady=5, sticky="e")
+    entry_puntuacion = tk.Entry(top)
+    entry_puntuacion.grid(row=12, column=1, padx=10, pady=5)
+
+    # Datos de la entrega (Segunda columna)
+    tk.Label(top, text="Fecha de Entrega").grid(row=13, column=0, padx=10, pady=5, sticky="e")
+    date_entry_fecha_entrega = DateEntry(top, date_pattern='y-mm-dd')
+    date_entry_fecha_entrega.grid(row=13, column=1, padx=10, pady=5)
+
+    tk.Label(top, text="Estado de Entrega").grid(row=14, column=0, padx=10, pady=5, sticky="e")
+    combo_estado_entrega = ttk.Combobox(top, values=["Completada", "Pendiente"])
+    combo_estado_entrega.grid(row=14, column=1, padx=10, pady=5)
+
+    # Botón para guardar, centrado al final
     btn_guardar = tk.Button(top, text="Guardar", command=guardar_distribuidor)
-    btn_guardar.pack()
+    btn_guardar.grid(row=15, column=0, columnspan=2, pady=20)
+
     centrar_ventana(top)
 
-# Función para modificar un distribuidor
-def modificar_distribuidor():
-    seleccion = tabla_distribuidores.focus()
-    distribuidor = tabla_distribuidores.item(seleccion, 'values')
 
-    def guardar_cambios():
-        distribuidor_id = distribuidor[0]
-        nuevo_nombre = entry_nombre.get()
-        nueva_certificacion = entry_certificacion.get()
-        nuevo_contacto = entry_contacto.get()
-        nueva_calificacion = int(entry_calificacion.get())
-        servicios.actualizar_distribuidor(distribuidor_id, nuevo_nombre, nueva_certificacion, nuevo_contacto, nueva_calificacion)
-        top.destroy()
-        actualizar_tabla()
-        messagebox.showinfo("Éxito", "Distribuidor actualizado con éxito")
 
-    top = tk.Toplevel()
-    top.title("Modificar Distribuidor")
-
-    tk.Label(top, text="Nuevo Nombre").pack()
-    entry_nombre = tk.Entry(top)
-    entry_nombre.insert(0, distribuidor[1])
-    entry_nombre.pack()
-
-    tk.Label(top, text="Nueva Certificación").pack()
-    entry_certificacion = tk.Entry(top)
-    entry_certificacion.insert(0, distribuidor[2])
-    entry_certificacion.pack()
-
-    tk.Label(top, text="Nuevo Contacto").pack()
-    entry_contacto = tk.Entry(top)
-    entry_contacto.insert(0, distribuidor[3])
-    entry_contacto.pack()
-
-    tk.Label(top, text="Nueva Calificación").pack()
-    entry_calificacion = tk.Entry(top)
-    entry_calificacion.insert(0, distribuidor[4])
-    entry_calificacion.pack()
-
-    btn_guardar = tk.Button(top, text="Guardar Cambios", command=guardar_cambios)
-    btn_guardar.pack()
-    centrar_ventana(top)
-
-# Función para eliminar un distribuidor
+# Función para eliminar un distribuidor (soft delete)
 def eliminar_distribuidor_ui():
     seleccion = tabla_distribuidores.focus()
     distribuidor = tabla_distribuidores.item(seleccion, 'values')
     distribuidor_id = distribuidor[0]
-    servicios.eliminar_distribuidor(distribuidor_id)
+
+    # Actualizar el campo "eliminado" a True
+    servicios.eliminar_distribuidor_logico(distribuidor_id)
+    
     actualizar_tabla()
-    messagebox.showinfo("Éxito", "Distribuidor eliminado con éxito")
+    messagebox.showinfo("Éxito", "Distribuidor marcado como eliminado con éxito")
+
+
+
+# Función para mostrar el historial de distribuidores
+def mostrar_historial_distribuidores():
+    # Limpiar la tabla de historial
+    for row in tabla_historial_distribuidores.get_children():
+        tabla_historial_distribuidores.delete(row)
+
+    # Obtener todos los distribuidores (incluyendo los eliminados)
+    distribuidores_historial = servicios.obtener_historial_distribuidores()
+
+    # Insertar distribuidores en la tabla
+    for distribuidor in distribuidores_historial:
+        tabla_historial_distribuidores.insert("", "end", values=distribuidor)
 
 # Actualizar los datos de la tabla
 def actualizar_tabla():
     for row in tabla_distribuidores.get_children():
         tabla_distribuidores.delete(row)
     mostrar_distribuidores()
+
+# Función para mostrar los distribuidores sugeridos en la tabla
+def mostrar_distribuidores_sugeridos():
+    # Acceder a la tabla global
+    global tabla_sugeridos_distribuidores
+
+    # Obtener los distribuidores sugeridos desde la base de datos
+    distribuidores_sugeridos = servicios.obtener_distribuidores_sugeridos()
+    print("Distribuidores sugeridos obtenidos:", distribuidores_sugeridos)
+
+    # Limpiar la tabla si ya contiene datos
+    for item in tabla_sugeridos_distribuidores.get_children():
+        tabla_sugeridos_distribuidores.delete(item)
+
+    # Insertar los distribuidores sugeridos en la tabla
+    for distribuidor in distribuidores_sugeridos:
+        print(f"Insertando en Treeview: {distribuidor}")  # Verificación adicional
+        tabla_sugeridos_distribuidores.insert('', 'end', values=distribuidor)
+
+    # Para pruebas, puedes agregar un distribuidor manualmente y ver si se muestra
+    tabla_sugeridos_distribuidores.insert('', 'end', values=(1, 'Distribuidor Prueba', 'ISO 9001', 5, 'Completada'))
